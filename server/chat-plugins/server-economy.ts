@@ -42,13 +42,20 @@ export class Economy {
 		Db.currency.set(userid, curTotal + amount);
 	}
 
+	/**
+	 * Logs transactions to a file.
+	 */
 	logTransaction(message: string): void {
 		if (!message) return;
 		FS('logs/transactions.log').append(`[${new Date().toUTCString()}] ${message}\n`);
 	}
 }
 
-const economy = new Economy();
+// Make it globally accessible as "economy"
+global.economy = new Economy();
+const economy = global.economy;
+// Can be exported to other files 
+export { economy };
 
 export const commands: Chat.ChatCommands = {
 	wallet(target, room, user) {
