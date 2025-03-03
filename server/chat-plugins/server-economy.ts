@@ -84,103 +84,103 @@ export const commands: Chat.ChatCommands = {
 
 	economy: {
 		give(target: string, room: Room | null, user: User) {
-            this.checkCan('globalban');
+						this.checkCan('globalban');
 
-            const [targetUsername, amountStr, reason] = target.split(',').map(part => part.trim());
-            if (!targetUsername || !amountStr || !reason) {
-                return this.errorReply("Usage: /economy give [user], [amount], [reason]");
-            }
+						const [targetUsername, amountStr, reason] = target.split(',').map(part => part.trim());
+						if (!targetUsername || !amountStr || !reason) {
+								return this.errorReply("Usage: /economy give [user], [amount], [reason]");
+						}
 
-            const targetUser = Users.get(targetUsername);
-            if (!targetUser || !targetUser.connected) {
-                return this.errorReply("The specified user does not exist or is not online.");
-            }
+						const targetUser = Users.get(targetUsername);
+						if (!targetUser || !targetUser.connected) {
+								return this.errorReply("The specified user does not exist or is not online.");
+						}
 
-            const amount = Math.round(Number(amountStr));
-            if (isNaN(amount) || amount < 1 || amount > 1000) {
-                return this.errorReply("Amount must be a number between 1 and 1000.");
-            }
+						const amount = Math.round(Number(amountStr));
+						if (isNaN(amount) || amount < 1 || amount > 1000) {
+								return this.errorReply("Amount must be a number between 1 and 1000.");
+						}
 
-            economy.writeMoney(targetUser.id, amount);
+						economy.writeMoney(targetUser.id, amount);
 
-            this.sendReply(`${targetUser.name} has received ${amount} ${global.currencyPlural}.`);
-            targetUser.send(
-                `|pm|${user.name}|${targetUser.name}|${user.name} has given you ${amount} ${global.currencyPlural}. Reason: ${reason}`
-            );
-            economy.logTransaction(
-                `${user.name} gave ${amount} ${global.currencyPlural} to ${targetUser.name}. Reason: ${reason}`
-            );
-        },
+						this.sendReply(`${targetUser.name} has received ${amount} ${global.currencyPlural}.`);
+						targetUser.send(
+								`|pm|${user.name}|${targetUser.name}|${user.name} has given you ${amount} ${global.currencyPlural}. Reason: ${reason}`
+						);
+						economy.logTransaction(
+								`${user.name} gave ${amount} ${global.currencyPlural} to ${targetUser.name}. Reason: ${reason}`
+						);
+				},
 
 		take(target: string, room: Room | null, user: User) {
-            this.checkCan('globalban');
+						this.checkCan('globalban');
 
-            const [targetUsername, amountStr, reason] = target.split(',').map(part => part.trim());
-            if (!targetUsername || !amountStr || !reason) {
-                return this.errorReply("Usage: /economy take [user], [amount], [reason]");
-            }
+						const [targetUsername, amountStr, reason] = target.split(',').map(part => part.trim());
+						if (!targetUsername || !amountStr || !reason) {
+								return this.errorReply("Usage: /economy take [user], [amount], [reason]");
+						}
 
-            const targetUser = Users.get(targetUsername); // Check if the target user exists and is online
-            if (!targetUser || !targetUser.connected) {
-                return this.errorReply("The specified user does not exist or is not online.");
-            }
+						const targetUser = Users.get(targetUsername); // Check if the target user exists and is online
+						if (!targetUser || !targetUser.connected) {
+								return this.errorReply("The specified user does not exist or is not online.");
+						}
 
-            const amount = Math.round(Number(amountStr));
-            if (isNaN(amount) || amount < 1 || amount > 1000) {
-                return this.errorReply("Amount must be a number between 1 and 1000.");
-            }
+						const amount = Math.round(Number(amountStr));
+						if (isNaN(amount) || amount < 1 || amount > 1000) {
+								return this.errorReply("Amount must be a number between 1 and 1000.");
+						}
 
-            economy.writeMoney(targetUser.id, -amount);
+						economy.writeMoney(targetUser.id, -amount);
 
-            this.sendReply(`You removed ${amount} ${global.currencyPlural} from ${targetUser.name}.`);
-            targetUser.send(`|pm|${user.name}|${targetUser.name}|${user.name} has removed ${amount} ${global.currencyPlural} from your balance. Reason: ${reason}`);
-            economy.logTransaction(`${user.name} took ${amount} ${global.currencyPlural} from ${targetUser.name}. Reason: ${reason}`);
-        },
+						this.sendReply(`You removed ${amount} ${global.currencyPlural} from ${targetUser.name}.`);
+						targetUser.send(`|pm|${user.name}|${targetUser.name}|${user.name} has removed ${amount} ${global.currencyPlural} from your balance. Reason: ${reason}`);
+						economy.logTransaction(`${user.name} took ${amount} ${global.currencyPlural} from ${targetUser.name}. Reason: ${reason}`);
+				},
 		
 		transfer(target: string, room: Room | null, user: User) {
-            const [targetUsername, amountStr] = target.split(',').map(part => part.trim());
-            if (!targetUsername || !amountStr) {
-                return this.errorReply("Usage: /economy transfer [user], [amount]");
-            }
+						const [targetUsername, amountStr] = target.split(',').map(part => part.trim());
+						if (!targetUsername || !amountStr) {
+								return this.errorReply("Usage: /economy transfer [user], [amount]");
+						}
 
-            const targetUser = Users.get(targetUsername); // Check if the target user exists and is online
-            if (!targetUser || !targetUser.connected) {
-                return this.errorReply("The specified user does not exist or is not online.");
-            }
+						const targetUser = Users.get(targetUsername); // Check if the target user exists and is online
+						if (!targetUser || !targetUser.connected) {
+								return this.errorReply("The specified user does not exist or is not online.");
+						}
 
-            const amount = Math.round(Number(amountStr));
-            if (isNaN(amount) || amount < 1 || amount > 1000) {
-                return this.errorReply("Amount must be a number between 1 and 1000.");
-            }
+						const amount = Math.round(Number(amountStr));
+						if (isNaN(amount) || amount < 1 || amount > 1000) {
+								return this.errorReply("Amount must be a number between 1 and 1000.");
+						}
 
-            const userMoney = economy.readMoney(user.id);
-            if (userMoney < amount) {
-                return this.errorReply(`You don't have enough ${global.currencyPlural}.`);
-            }
+						const userMoney = economy.readMoney(user.id);
+						if (userMoney < amount) {
+								return this.errorReply(`You don't have enough ${global.currencyPlural}.`);
+						}
 
-            // Deduct from sender and add to recipient
-            economy.writeMoney(user.id, -amount);
-            economy.writeMoney(targetUser.id, amount);
+						// Deduct from sender and add to recipient
+						economy.writeMoney(user.id, -amount);
+						economy.writeMoney(targetUser.id, amount);
 
-            this.sendReply(`You transferred ${amount} ${global.currencyPlural} to ${targetUser.name}.`);
-            targetUser.send(`|pm|${user.name}|${targetUser.name}|You have received ${amount} ${global.currencyPlural} from ${user.name}.`);
-            economy.logTransaction(`${user.name} transferred ${amount} ${global.currencyPlural} to ${targetUser.name}.`);
-        },
+						this.sendReply(`You transferred ${amount} ${global.currencyPlural} to ${targetUser.name}.`);
+						targetUser.send(`|pm|${user.name}|${targetUser.name}|You have received ${amount} ${global.currencyPlural} from ${user.name}.`);
+						economy.logTransaction(`${user.name} transferred ${amount} ${global.currencyPlural} to ${targetUser.name}.`);
+				},
 
 		reset(target, room, user) {
-            this.checkCan('globalban');
-            const userid = toID(target);
-            if (!userid) return this.errorReply("Invalid username.");
+						this.checkCan('globalban');
+						const userid = toID(target);
+						if (!userid) return this.errorReply("Invalid username.");
 
-            // Check if the user exists in the database
-            if (!Db.currency.has(userid)) {
-                return this.errorReply(`${userid} does not have any currency data.`);
-            }
+						// Check if the user exists in the database
+						if (!Db.currency.has(userid)) {
+								return this.errorReply(`${userid} does not have any currency data.`);
+						}
 
-            // Reset currency to 0
-            Db.currency.set(userid, 0);
-            this.sendReply(`${userid} now has 0 ${global.currencyPlural}.`);
-        },
+						// Reset currency to 0
+						Db.currency.set(userid, 0);
+						this.sendReply(`${userid} now has 0 ${global.currencyPlural}.`);
+				},
 
 		log(target, room, user) {
 			if (!this.can('mod')) return false;
