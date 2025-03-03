@@ -74,29 +74,27 @@ export const commands: Chat.ChatCommands = {
 		output += `</table><hr style="border: 1px solid #ffd700;"><p style="color: #f8f8f8; font-size: 14px; font-weight: bold;">✨ <i>Can you become the richest Trainer?</i> ✨</p></div>`;
 		this.sendReplyBox(output);
 	},
-
-	economy: {
-		give(target: string, room: Room | null, user: User) {
-			this.checkCan('globalban');
-			const [targetUsername, amountStr, reason] = target.split(',').map(part => part.trim());
-			if (!targetUsername || !amountStr || !reason) {
-				return this.errorReply("Usage: /economy give [user], [amount], [reason]");
-			}
-			// Ensure the target user exists and is online
-			const targetUser = Users.get(targetUsername);
-			if (!targetUser || !targetUser.connected) {
-				return this.errorReply(`User '${targetUsername}' is not online.`);
-			}
-			const amount = Math.round(Number(amountStr));
-			if (isNaN(amount) || amount < 1 || amount > 1000) {
-				return this.errorReply("Amount must be a number between 1 and 1000.");
-			}
-			// Notify both users
-			this.sendReply(`${targetUser.name} has received ${amount} ${global.currencyPlural}.`);
-			targetUser.send(`|pm|${user.getIdentity()}|${targetUser.getIdentity()}|You have received ${amount} ${global.currencyPlural} from ${user.name}! Reason: ${reason}`);
-			// Log transaction
-			economy.logTransaction(`${user.name} gave ${amount} ${global.currencyPlural} to ${targetUser.name}. Reason: ${reason}`);
-		},
+	give(target: string, room: Room | null, user: User) {
+		this.checkCan('globalban');
+		const [targetUsername, amountStr, reason] = target.split(',').map(part => part.trim());
+		if (!targetUsername || !amountStr || !reason) {
+			return this.errorReply("Usage: /economy give [user], [amount], [reason]");
+		}
+		// Ensure the target user exists and is online
+		const targetUser = Users.get(targetUsername);
+		if (!targetUser || !targetUser.connected) {
+			return this.errorReply(`User '${targetUsername}' is not online.`);
+		}
+		const amount = Math.round(Number(amountStr));
+		if (isNaN(amount) || amount < 1 || amount > 1000) {
+			return this.errorReply("Amount must be a number between 1 and 1000.");
+		}
+		// Notify both users
+		this.sendReply(`${targetUser.name} has received ${amount} ${global.currencyPlural}.`);
+		targetUser.send(`|pm|${user.getIdentity()}|${targetUser.getIdentity()}|You have received ${amount} ${global.currencyPlural} from ${user.name}! Reason: ${reason}`);
+		// Log transaction
+		economy.logTransaction(`${user.name} gave ${amount} ${global.currencyPlural} to ${targetUser.name}. Reason: ${reason}`);
+	},
 
 		take(target, room, user) {
 			this.checkCan('globalban');
