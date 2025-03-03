@@ -87,9 +87,6 @@ function setupGlobals() {
 		});
 	}
 
-	// Define Economy Globally 
-	global.economy = {};
-
 	// Add nef/neffs database globally 
 	global.Db = require('nef')(require('nef-fs')('./impulse/db'));
 
