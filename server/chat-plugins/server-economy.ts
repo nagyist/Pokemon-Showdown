@@ -49,7 +49,7 @@ export class Economy {
 		if (!message) return;
 		FS('logs/transactions.log').append(`[${new Date().toUTCString()}] ${message}\n`);
 	}
-}
+};
 
 // Make it globally accessible as "economy"
 global.economy = new Economy();
@@ -217,7 +217,7 @@ export const commands: Chat.ChatCommands = {
 			this.sendReplyBox(helpHTML);
 		},
 	},
-};
+	};
 
 function getModernEconomyHelpHTML(): string { 
 	return `<div style="background:linear-gradient(135deg,#2c2f36,#3b3f47);padding:15px;border-radius:12px;border:3px solid #ffd700;text-align:center;color:#f8f8f8;"><h3 style="color:#ffd700;">💰 ${global.ServerName} Economy System 💰</h3><div style="margin-top:10px;padding:10px;border-radius:8px;background:rgba(70,130,180,0.3);border-left:5px solid #4a90e2;"><h4 style="color:#4a90e2;">⚡ Trainer Commands</h4><b>/wallet [user]</b> - Check balance.<br><b>/richestuser [limit]</b> - View top trainers.<br><b>/economy transfer [user], [amount]</b> - Send ${global.currencyPlural}.<br><b>/economy giveaway [amount], [time]</b> - Start a giveaway (Room Owners #+ only).<br><b>/economy help</b> - View this help menu.<br></div><div style="margin-top:10px;padding:10px;border-radius:8px;background:rgba(220,20,60,0.3);border-left:5px solid #e63946;"><h4 style="color:#e63946;">🔱 Staff Commands</h4><b>/economy give [user], [amount]</b> - Give ${global.currencyPlural}.<br><b>/economy take [user], [amount]</b> - Remove ${global.currencyPlural}.<br><b>/economy reset [user]</b> - Reset a trainer’s balance.<br><b>/economy log</b> - View logs.<br></div></div>`; 
