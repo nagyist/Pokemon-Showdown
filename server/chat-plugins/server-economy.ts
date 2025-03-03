@@ -76,17 +76,26 @@ export const commands: Chat.ChatCommands = {
 	},
 
 	economy: {
-		give(target, room, user) {
+		give(target: string, room: Room | null, user: User) {
 			this.checkCan('globalban');
-			const [targetUser, amountStr, reason] = target.split(',').map(part => part.trim());
-			if (!targetUser || !amountStr || !reason) return this.errorReply("Usage: /economy give [user], [amount], [reason]");
-			
+			const [targetUsername, amountStr, reason] = target.split(',').map(part => part.trim());
+			if (!targetUsername || !amountStr || !reason) {
+				return this.errorReply("Usage: /economy give [user], [amount], [reason]");
+			}
+			// Ensure the target user exists and is online
+			const targetUser = Users.get(targetUsername);
+			if (!targetUser || !targetUser.connected) {
+				return this.errorReply(`User '${targetUsername}' is not online.`);
+			}
 			const amount = Math.round(Number(amountStr));
-			if (isNaN(amount) || amount < 1 || amount > 1000) return this.errorReply("Amount must be a number between 1 and 1000.");
-
-			economy.writeMoney(targetUser, amount);
-			this.sendReply(`${targetUser} has received ${amount} ${global.currencyPlural}.`);
-			economy.logTransaction(`${user.name} gave ${amount} ${global.currencyPlural} to ${targetUser}. Reason: ${reason}`);
+			if (isNaN(amount) || amount < 1 || amount > 1000) {
+				return this.errorReply("Amount must be a number between 1 and 1000.");
+			}
+			// Notify both users
+			this.sendReply(`${targetUser.name} has received ${amount} ${global.currencyPlural}.`);
+			targetUser.send(`|pm|${user.getIdentity()}|${targetUser.getIdentity()}|You have received ${amount} ${global.currencyPlural} from ${user.name}! Reason: ${reason}`);
+			// Log transaction
+			economy.logTransaction(`${user.name} gave ${amount} ${global.currencyPlural} to ${targetUser.name}. Reason: ${reason}`);
 		},
 
 		take(target, room, user) {
