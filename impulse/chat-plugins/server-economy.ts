@@ -181,6 +181,19 @@ export const commands: Chat.ChatCommands = {
 						Db.currency.set(userid, 0);
 						this.sendReply(`${userid} now has 0 ${global.currencyPlural}.`);
 				},
+		
+		stats(target, room, user) {
+            if (!this.runBroadcast()) return;
+
+            const users = Db.currency.keys().map(curUser => ({ amount: Db.currency.get(curUser) || 0 }));
+            const total = users.reduce((acc, cur) => acc + cur.amount, 0);
+            const average = users.length ? Math.floor(total / users.length) : 0;
+
+            let output = `There ${total !== 1 ? "are" : "is"} ${total} ${total !== 1 ? currencyPlural : currencyName} circulating in the economy. `;
+            output += `The average user has ${average} ${average !== 1 ? currencyPlural : currencyName}.`;
+
+            this.sendReplyBox(output);
+        },
 
 		log(target, room, user) {
 			if (!this.can('mod')) return false;
