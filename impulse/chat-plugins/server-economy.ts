@@ -202,63 +202,6 @@ export const commands: Chat.ChatCommands = {
 			const output = logs.slice(0, count).join('\n');
 			user.popup("|wide|" + output);
 		},
-		
-		giveaway(target, room, user) {
-		room = this.requireRoom();
-		this.checkCan('declare', null, room);
-
-		const [amountStr, timeStr] = target.split(',').map(part => part.trim());
-		const amount = Math.round(Number(amountStr));
-		let timeLeft = Math.round(Number(timeStr));
-
-		if (isNaN(amount) || amount < 1) return this.errorReply("Usage: /economy giveaway [amount], [time in seconds]");
-		if (isNaN(timeLeft) || timeLeft < 30 || timeLeft > 300) return this.errorReply("Time must be between 30 and 300 seconds.");
-
-		const userBalance = economy.readMoney(user.id);
-		if (userBalance < amount) return this.errorReply(`You don't have enough ${global.currencyPlural} to give away.`);
-
-		const onlineUsers = [...Users.users.values()]
-			.filter(u => u.connected && u.id !== user.id)
-			.map(u => u.id);
-
-		if (onlineUsers.length < 1) return this.errorReply("At least two users must be online to start a giveaway.");
-
-		economy.writeMoney(user.id, -amount);
-		economy.logTransaction(`${user.name} started a giveaway of ${amount} ${global.currencyPlural}.`);
-
-		const giveawayId = `giveaway-${room.roomid}-${Date.now()}`;
-		const style = "background:linear-gradient(135deg,#2c2f36,#3b3f47);padding:15px;border-radius:12px;border:3px solid #ffd700;text-align:center;color:#f8f8f8;";
-		room.add(`|uhtml|${giveawayId}|<div style="${style}"><h3 style="color:#ffd700;">🎁 A Giveaway Has Started! 🎁</h3><p><b>${user.name}</b> is giving away <b>${amount} ${global.currencyPlural}</b>!</p><p>The winner will be chosen in <b>${timeLeft} seconds</b>. Stay online for a chance to win!</p></div>`).update();
-
-		const updateCountdown = setInterval(() => {
-			timeLeft -= 10;
-			if (timeLeft <= 0) {
-				clearInterval(updateCountdown);
-				return;
-			}
-			room.add(`|uhtmlchange|${giveawayId}|<div style="${style}"><h3 style="color:#ffd700;">🎁 A Giveaway Is Ongoing! 🎁</h3><p><b>${user.name}</b> is giving away <b>${amount} ${global.currencyPlural}</b>!</p><p>Time left: <b>${timeLeft} seconds</b>. Stay online for a chance to win!</p></div>`).update();
-		}, 10000);
-
-		setTimeout(() => {
-			clearInterval(updateCountdown);
-
-			const winnerId = onlineUsers[Math.floor(Math.random() * onlineUsers.length)];
-			const winner = Users.get(winnerId);
-
-			if (!winner) {
-				room.add(`|uhtmlchange|${giveawayId}|<div style="${style}"><h3 style="color:#ffd700;">⚠ Giveaway Canceled ⚠</h3><p>No eligible users were online. The giveaway has been canceled.</p></div>`).update();
-				return;
-			}
-
-			economy.writeMoney(winner.id, amount);
-			economy.logTransaction(`${winner.name} won a giveaway of ${amount} ${global.currencyPlural}.`);
-
-			room.add(`|uhtmlchange|${giveawayId}|<div style="${style}"><h3 style="color:#ffd700;">🎉 Giveaway Winner! 🎉</h3><p>Congratulations, <b>${winner.name}</b>! You have won <b>${amount} ${global.currencyPlural}</b> from ${user.name}!</p></div>`).update();
-
-			winner.send(`🎉 You have won the giveaway of **${amount} ${global.currencyPlural}**!`);
-			user.send(`Your giveaway has ended! The winner is **${winner.name}**, and they have received **${amount} ${global.currencyPlural}**.`);
-		}, timeLeft * 1000);
-	},
 			
 		help(target, room, user) {
 			if (!this.runBroadcast()) return;
