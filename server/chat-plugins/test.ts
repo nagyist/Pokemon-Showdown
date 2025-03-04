@@ -1,6 +1,6 @@
 /**
  * Gym Challenge System for Pokémon Showdown
- * Version: 1.8 (Fixed AI User Object Issue)
+ * Version: 1.9 (Fixed Battle Engine Crash)
  * Developed by: [Your Name or Server Name]
  * 
  * Summary:
@@ -31,8 +31,11 @@ export const commands: Chat.ChatCommands = {
 				return this.errorReply("You must be online to challenge a Gym Leader.");
 			}
 
-			// Create an AI-controlled Gym Leader bot
-			let gymBot = Users.get(npcUsername) || new Users.User(npcUsername, true);
+			// Ensure the Gym Leader AI user exists
+			let gymBot = Users.get(npcUsername);
+			if (!gymBot) {
+				gymBot = Users.add(npcUsername, true);
+			}
 			gymBot.isBot = true; // Mark the Gym Leader as AI-controlled
 
 			// Broadcast the challenge
