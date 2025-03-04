@@ -3,8 +3,6 @@ import { RoundRobin } from './generator-round-robin';
 import { Utils } from '../../lib';
 import { PRNG } from '../../sim/prng';
 import type { BestOfGame } from '../room-battle-bestof';
-// Import Economy
-import { giveMoney, getTournamentRewardConfig } from '../../../../chat-plugins/server-economy';
 
 export interface TournamentRoomSettings {
 	allowModjoin?: boolean;
@@ -1201,30 +1199,6 @@ export class Tournament extends Rooms.RoomGame<TournamentPlayer> {
             settings.recentTours.pop();
         }
         this.room.saveSettings();
-    }
-
-    // 🏆 Reward PokéCoins to Tournament Winner and Runner-Up
-    const { winnerCoins, runnerUpCoins, minParticipants } = getTournamentRewardConfig();
-
-    if (this.players.size < minParticipants) {
-        this.room.add(`|tournament|error|Not enough participants (${this.players.size}/${minParticipants}) to distribute PokéCoins.`);
-    } else {
-        const winners = this.generator.getResults() as TournamentPlayer[][]; // Get winners
-        if (winners.length) {
-            const winner = winners[0][0]; // First place
-            const runnerUp = winners[1]?.[0] || null; // Second place (if available)
-
-            let winnerPrize = this.players.size * winnerCoins;
-            let runnerUpPrize = this.players.size * runnerUpCoins;
-
-            giveMoney(winner.id, winnerPrize);
-            this.room.add(`🏆 **${winner.name}** won the tournament and received **${winnerPrize} PokéCoins**!`);
-
-            if (runnerUp) {
-                giveMoney(runnerUp.id, runnerUpPrize);
-                this.room.add(`🥈 **${runnerUp.name}** finished second and received **${runnerUpPrize} PokéCoins**!`);
-            }
-        }
     }
 
     this.remove(); // Cleanup after tournament ends
