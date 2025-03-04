@@ -10,7 +10,7 @@
 
 'use strict';
 
-import { FS } from '../../lib';
+import { FS } from '../lib';
 
 global.ServerName = 'Impulse';
 global.currencyName = 'Pokédollar';
