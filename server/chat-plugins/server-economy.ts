@@ -28,11 +28,6 @@ function saveEconomy(data: EconomyData) {
     FS(ECONOMY_FILE).writeUpdate(() => JSON.stringify(data, null, 2));
 }
 
-// Save interest settings
-function saveEconomyConfig(config: EconomyConfig) {
-    FS(ECONOMY_CONFIG_FILE).writeUpdate(() => JSON.stringify(config, null, 2));
-}
-
 // Economy Functions
 function getBalance(userID: string): number {
     const economy = loadEconomy();
