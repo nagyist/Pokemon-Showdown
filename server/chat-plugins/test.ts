@@ -17,7 +17,7 @@ const GYM_LEADERS = ['Brock', 'Misty', 'Lt. Surge', 'Erika', 'Koga', 'Sabrina', 
 
 export const commands: Chat.ChatCommands = {
 	gym: {
-		async challenge(target, room, user) {
+		challenge(target, room, user) {
 			if (!room) {
 				return this.errorReply("This command must be used in a room.");
 			}
