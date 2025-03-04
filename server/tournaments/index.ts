@@ -3,6 +3,8 @@ import { RoundRobin } from './generator-round-robin';
 import { Utils } from '../../lib';
 import { PRNG } from '../../sim/prng';
 import type { BestOfGame } from '../room-battle-bestof';
+// Import Economy
+import { giveMoney, getTournamentRewardConfig } from '../../../../chat-plugins/server-economy';
 
 export interface TournamentRoomSettings {
 	allowModjoin?: boolean;
