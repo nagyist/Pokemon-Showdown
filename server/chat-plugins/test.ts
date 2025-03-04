@@ -1,6 +1,6 @@
 /**
  * Gym Challenge System for Pokémon Showdown
- * Version: 1.5 (Uses Battle Engine, Server-Controlled AI)
+ * Version: 1.6 (Fixed Battle Engine Crash)
  * Developed by: [Your Name or Server Name]
  * 
  * Summary:
@@ -11,20 +11,31 @@
 
 import {Chat} from '../chat';
 import {Rooms} from '../rooms';
-import {BattleStream, BattlePlayer, PRNG} from '../sim';
+import {Users} from '../users';
 
 const GYM_LEADERS = ['Brock', 'Misty', 'Lt. Surge', 'Erika', 'Koga', 'Sabrina', 'Blaine', 'Giovanni']; // NPC Gym Leaders
 
 export const commands: Chat.ChatCommands = {
 	gym: {
-		challenge(target, room, user) {
+		async challenge(target, room, user) {
 			if (!room) {
 				return this.errorReply("This command must be used in a room.");
 			}
 
-			// Select a random Gym Leader from the list
+			// Select a random Gym Leader
 			const gymLeader = GYM_LEADERS[Math.floor(Math.random() * GYM_LEADERS.length)];
-			const npcUsername = `GymLeader-${gymLeader.replace(/\s/g, '')}`; // Create a unique NPC name
+			const npcUsername = `GymLeader-${gymLeader.replace(/\s/g, '')}`;
+			const challenger = Users.get(user.id);
+
+			if (!challenger) {
+				return this.errorReply("You must be online to challenge a Gym Leader.");
+			}
+
+			// Create an AI-controlled Gym Leader bot
+			const gymBot = Users.make(npcUsername, true);
+			if (!gymBot) {
+				return this.errorReply("Failed to create Gym Leader AI. Please try again.");
+			}
 
 			// Broadcast the challenge
 			room.add(`|html|<div class="broadcast-blue" style="background: #1e1f22; padding: 15px; border-radius: 12px; border: 3px solid #ff4500; text-align: center; color: #f8f8f8;">
@@ -34,11 +45,11 @@ export const commands: Chat.ChatCommands = {
 			</div>`);
 			room.update();
 
-			// Start the battle using Pokémon Showdown's battle engine
+			// Start the battle
 			const battle = Rooms.createBattle({
 				format: 'gen9randombattle',
-				p1: {name: user.name, user},
-				p2: {name: npcUsername, user: null, isBot: true}, // AI-controlled Gym Leader
+				p1: {user: challenger},
+				p2: {user: gymBot, isBot: true},
 			});
 
 			if (!battle) {
