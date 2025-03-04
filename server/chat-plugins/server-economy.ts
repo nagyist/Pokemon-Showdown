@@ -7,7 +7,6 @@
 import { FS } from '../../lib/fs';
 
 const ECONOMY_FILE = '../../impulse/economy.json';
-const ECONOMY_CONFIG_FILE = '../../impulse/economy-config.json';
 
 interface EconomyData {
     [userID: string]: {
