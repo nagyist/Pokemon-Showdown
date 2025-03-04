@@ -1,27 +1,27 @@
 /**
  * Impulse Server Economy System
  * Developed by: Clark Jones @Prince Sky
- * Description: A simple economy system for the Impulse Server, 
- * allowing users to manage PokéCoins with balance tracking, transfers, and a leaderboard.
- * 
- * Commands:
- * - /balance [user]
- * - /givemoney [user], [amount]
- * - /takemoney [user], [amount]
- * - /transfermoney [user], [amount]
- * - /leaderboard [page]
- * - /economyhelp
+ * Features: Balance tracking, banking, interest, leaderboards, and transactions.
  */
 
 import { FS } from '../../lib/fs';
 
 const ECONOMY_FILE = '../../impulse/economy.json';
+const ECONOMY_CONFIG_FILE = '../../impulse/economy-config.json';
 
 interface EconomyData {
-    [userID: string]: number;
+    [userID: string]: {
+        balance: number;
+        bank: number;
+    };
 }
 
-// Load economy data from file
+interface EconomyConfig {
+    interestRate: number;
+    interestPeriod: number;
+}
+
+// Load economy data
 function loadEconomy(): EconomyData {
     try {
         return JSON.parse(FS(ECONOMY_FILE).readIfExistsSync() || '{}');
@@ -30,134 +30,212 @@ function loadEconomy(): EconomyData {
     }
 }
 
-// Save economy data to file
+// Save economy data
 function saveEconomy(data: EconomyData) {
     FS(ECONOMY_FILE).writeUpdate(() => JSON.stringify(data, null, 2));
 }
 
-// Get a user's balance
+// Load interest settings
+function loadEconomyConfig(): EconomyConfig {
+    try {
+        return JSON.parse(FS(ECONOMY_CONFIG_FILE).readIfExistsSync() || '{}');
+    } catch {
+        return { interestRate: 0.01, interestPeriod: 86400000 };
+    }
+}
+
+// Save interest settings
+function saveEconomyConfig(config: EconomyConfig) {
+    FS(ECONOMY_CONFIG_FILE).writeUpdate(() => JSON.stringify(config, null, 2));
+}
+
+// Economy Functions
 function getBalance(userID: string): number {
     const economy = loadEconomy();
-    return economy[userID] || 0;
+    return economy[userID]?.balance || 0;
 }
 
-// Give money to a user
-function giveMoney(userID: string, amount: number): boolean {
-    if (isNaN(amount) || amount <= 0) return false;
+// Give money
+function giveMoney(userID: string, amount: number) {
     const economy = loadEconomy();
-    if (!economy[userID]) economy[userID] = 0;
-
-    economy[userID] += amount;
+    if (!economy[userID]) economy[userID] = { balance: 0, bank: 0 };
+    economy[userID].balance += amount;
     saveEconomy(economy);
-    return true;
 }
 
-// Take money from a user
-function takeMoney(userID: string, amount: number): boolean {
-    if (isNaN(amount) || amount <= 0) return false;
+// Take money
+function takeMoney(userID: string, amount: number) {
     const economy = loadEconomy();
-    if (!economy[userID] || economy[userID] < amount) return false; // Prevent negative balance
-
-    economy[userID] -= amount;
+    if (!economy[userID]) return;
+    economy[userID].balance = Math.max(0, economy[userID].balance - amount);
     saveEconomy(economy);
-    return true;
 }
 
-// Transfer money between users
-function transferMoney(senderID: string, receiverID: string, amount: number): boolean {
-    if (senderID === receiverID || isNaN(amount) || amount <= 0) return false;
+// Transfer money
+function transferMoney(fromID: string, toID: string, amount: number): string {
     const economy = loadEconomy();
-    if (!economy[senderID] || economy[senderID] < amount) return false;
+    if (!economy[fromID] || economy[fromID].balance < amount) return "You don't have enough PokéCoins.";
+    if (amount <= 0) return "Invalid amount.";
 
-    if (!economy[receiverID]) economy[receiverID] = 0;
-    economy[senderID] -= amount;
-    economy[receiverID] += amount;
+    economy[fromID].balance -= amount;
+    if (!economy[toID]) economy[toID] = { balance: 0, bank: 0 };
+    economy[toID].balance += amount;
     saveEconomy(economy);
-    return true;
+    return `You sent ${amount} PokéCoins to ${toID}.`;
 }
 
-// Get the richest users (sorted list)
-function getRichestUsers(): [string, number][] {
+// Banking Functions
+function depositBank(userID: string, amount: number): string {
     const economy = loadEconomy();
-    return Object.entries(economy).sort((a, b) => b[1] - a[1]);
+    if (!economy[userID]) economy[userID] = { balance: 0, bank: 0 };
+    if (amount <= 0 || economy[userID].balance < amount) return "Invalid deposit amount.";
+
+    economy[userID].balance -= amount;
+    economy[userID].bank += amount;
+    saveEconomy(economy);
+    return `You deposited ${amount} PokéCoins into the bank!`;
 }
 
-export const commands: Chat.ChatCommands = {
+function withdrawBank(userID: string, amount: number): string {
+    const economy = loadEconomy();
+    if (!economy[userID]) economy[userID] = { balance: 0, bank: 0 };
+    if (amount <= 0 || economy[userID].bank < amount) return "Invalid withdrawal amount.";
+
+    const fee = Math.ceil(amount * 0.02);
+    const finalAmount = amount - fee;
+
+    economy[userID].bank -= amount;
+    economy[userID].balance += finalAmount;
+    saveEconomy(economy);
+    return `You withdrew ${amount} PokéCoins (Fee: ${fee}). You received ${finalAmount} PokéCoins!`;
+}
+
+function getBankBalance(userID: string): string {
+    const economy = loadEconomy();
+    return `You have ${economy[userID]?.bank || 0} PokéCoins in the bank.`;
+}
+
+// Interest System
+function applyInterest() {
+    const economy = loadEconomy();
+    const config = loadEconomyConfig();
+    const interestRate = config.interestRate;
+
+    for (const userID in economy) {
+        if (economy[userID].bank > 0) {
+            economy[userID].bank += Math.floor(economy[userID].bank * interestRate);
+        }
+    }
+    saveEconomy(economy);
+}
+
+// Start interest system
+function startInterestTimer() {
+    setInterval(applyInterest, loadEconomyConfig().interestPeriod);
+}
+startInterestTimer();
+
+// Get the richest users leaderboard
+function getRichestUsers(start: number, end: number): string {
+    const economy = loadEconomy();
+    const sortedUsers = Object.entries(economy)
+        .sort(([, a], [, b]) => (b.balance + b.bank) - (a.balance + a.bank))
+        .slice(start - 1, end);
+
+    if (sortedUsers.length === 0) return "No users found in this range.";
+
+    let leaderboard = `<div style="max-height: 300px; overflow-y: auto;"><b>🏆 Richest Users Leaderboard</b><br>`;
+    sortedUsers.forEach(([userID, { balance, bank }], index) => {
+        leaderboard += `#${start + index}: ${userID} - ${balance + bank} PokéCoins<br>`;
+    });
+    leaderboard += "</div>";
+
+    return leaderboard;
+}
+
+// Get help information
+function getEconomyHelp(): string {
+    return `<div style="max-height: 300px; overflow-y: auto;"><b>💰 Economy Commands Help</b><br>
+    <b>/balance [user]</b> - Check your or another user's balance.<br>
+    <b>/givemoney [user], [amount]</b> - Give money to a user (Admin only).<br>
+    <b>/takemoney [user], [amount]</b> - Take money from a user (Admin only).<br>
+    <b>/transfermoney [user], [amount]</b> - Transfer money to another user.<br>
+    <b>/bank deposit [amount]</b> - Deposit money into the bank.<br>
+    <b>/bank withdraw [amount]</b> - Withdraw money from the bank.<br>
+    <b>/bank balance</b> - Check your bank balance.<br>
+    <b>/richestusers [start]-[end]</b> - View the richest users leaderboard.<br>
+    <b>/setinterest [rate], [time]</b> - Set bank interest rate and time period (Admin only).<br>
+    <b>/economyhelp</b> - View this help menu.<br>
+    </div>`;
+}
+
+// Economy Commands
+export const commands: ChatCommands = {
     balance(target, room, user) {
-        if (!target) target = user.id;
-        const balance = getBalance(toID(target));
-        this.sendReply(`${target} has ${balance} PokéCoins.`);
+        const targetUser = target.trim() || user.id;
+        return this.sendReply(`${targetUser} has ${getBalance(targetUser)} PokéCoins.`);
     },
 
     givemoney(target, room, user) {
-        if (!this.can('declare')) return false;
-        const [targetUser, amountStr] = target.split(',').map(param => param.trim());
-        const amount = parseInt(amountStr);
-        if (!targetUser || isNaN(amount)) return this.errorReply("Usage: /givemoney [user], [amount]");
+        if (!user.hasRank('%')) return this.sendReply("You don't have permission.");
+        const [targetUser, amountStr] = target.split(',').map(x => x.trim());
+        const amount = Number(amountStr);
+        if (!targetUser || isNaN(amount) || amount <= 0) return this.sendReply("Usage: /givemoney [user], [amount]");
 
-        if (giveMoney(toID(targetUser), amount)) {
-            this.addModAction(`${user.name} has given ${amount} PokéCoins to ${targetUser}.`);
-        } else {
-            this.errorReply("Invalid transaction.");
-        }
+        giveMoney(targetUser, amount);
+        return this.sendReply(`Gave ${amount} PokéCoins to ${targetUser}.`);
     },
 
     takemoney(target, room, user) {
-        if (!this.can('declare')) return false;
-        const [targetUser, amountStr] = target.split(',').map(param => param.trim());
-        const amount = parseInt(amountStr);
-        if (!targetUser || isNaN(amount)) return this.errorReply("Usage: /takemoney [user], [amount]");
+        if (!user.hasRank('%')) return this.sendReply("You don't have permission.");
+        const [targetUser, amountStr] = target.split(',').map(x => x.trim());
+        const amount = Number(amountStr);
+        if (!targetUser || isNaN(amount) || amount <= 0) return this.sendReply("Usage: /takemoney [user], [amount]");
 
-        if (takeMoney(toID(targetUser), amount)) {
-            this.addModAction(`${user.name} has taken ${amount} PokéCoins from ${targetUser}.`);
-        } else {
-            this.errorReply("Invalid transaction.");
-        }
+        takeMoney(targetUser, amount);
+        return this.sendReply(`Took ${amount} PokéCoins from ${targetUser}.`);
     },
 
     transfermoney(target, room, user) {
-        const [receiver, amountStr] = target.split(',').map(param => param.trim());
-        const amount = parseInt(amountStr);
-        if (!receiver || isNaN(amount)) return this.errorReply("Usage: /transfermoney [user], [amount]");
+        const [targetUser, amountStr] = target.split(',').map(x => x.trim());
+        const amount = Number(amountStr);
+        if (!targetUser || isNaN(amount) || amount <= 0) return this.sendReply("Usage: /transfermoney [user], [amount]");
 
-        if (transferMoney(user.id, toID(receiver), amount)) {
-            this.addModAction(`${user.name} has transferred ${amount} PokéCoins to ${receiver}.`);
-        } else {
-            this.errorReply("Transaction failed.");
-        }
+        return this.sendReply(transferMoney(user.id, targetUser, amount));
     },
 
-    leaderboard(target, room, user) {
-        if (!this.runBroadcast()) return;
-        const page = parseInt(target) || 1;
-        const entriesPerPage = 10;
-        const allUsers = getRichestUsers();
-
-        if (allUsers.length === 0) return this.sendReplyBox("No users found in the economy system.");
-        const totalPages = Math.ceil(allUsers.length / entriesPerPage);
-
-        if (page < 1 || page > totalPages) return this.errorReply(`Invalid page. Please enter a number between 1 and ${totalPages}.`);
-
-        let output = `<strong>Top PokéCoin Holders (Page ${page}/${totalPages}):</strong><br>`;
-        const start = (page - 1) * entriesPerPage;
-        const end = Math.min(start + entriesPerPage, allUsers.length);
-        for (let i = start; i < end; i++) {
-            output += `#${i + 1}: ${allUsers[i][0]} - ${allUsers[i][1]} PokéCoins<br>`;
-        }
-        output += `<br><small>Use /leaderboard [page] to view more.</small>`;
-        this.sendReplyBox(output);
+    bank(target, room, user) {
+        const [cmd, amountStr] = target.split(',').map(x => x.trim());
+        const amount = Number(amountStr);
+        if (cmd === "balance") return this.sendReply(getBankBalance(user.id));
+        if (cmd === "deposit") return this.sendReply(depositBank(user.id, amount));
+        if (cmd === "withdraw") return this.sendReply(withdrawBank(user.id, amount));
+        return this.sendReply("/bank deposit [amount] | /bank withdraw [amount] | /bank balance");
     },
 
-    economyhelp() {
-        if (!this.runBroadcast()) return;
-        this.sendReplyBox(`
-            <strong>Impulse Economy Commands:</strong><br>
-            <code>/balance [user]</code> - View your or another user's balance.<br>
-            <code>/givemoney [user], [amount]</code> - Give a user PokéCoins. (Requires authority)<br>
-            <code>/takemoney [user], [amount]</code> - Remove a user's PokéCoins. (Requires authority)<br>
-            <code>/transfermoney [user], [amount]</code> - Transfer PokéCoins to another user.<br>
-            <code>/leaderboard [page]</code> - View the richest users.<br>
-            <code>/economyhelp</code> - Show this help message.
-        `);
+    setinterest(target, room, user) {
+        if (!user.hasRank('+')) return this.sendReply("You don't have permission.");
+        const [rateStr, periodStr] = target.split(',').map(x => x.trim());
+        const config = loadEconomyConfig();
+        config.interestRate = parseFloat(rateStr);
+        config.interestPeriod = Number(periodStr);
+        saveEconomyConfig(config);
+        return this.sendReply(`Interest rate set to ${config.interestRate * 100}%. Period: ${config.interestPeriod / 3600000} hours.`);
+    },
+
+	richestusers(target, room, user) {
+        if (!target) return this.sendReply("Usage: /richestusers [start]-[end] (e.g., /richestusers 1-10)");
+
+        const [startStr, endStr] = target.split('-').map(x => x.trim());
+        const start = Number(startStr) || 1;
+        const end = Number(endStr) || start + 9;
+
+        if (start <= 0 || end < start) return this.sendReply("Invalid range. Use /richestusers 1-10.");
+
+        return this.sendReplyBox(getRichestUsers(start, end));
+    },
+
+	economyhelp(target, room, user) {
+        return this.sendReplyBox(getEconomyHelp());
     },
 };
