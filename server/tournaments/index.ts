@@ -1175,30 +1175,34 @@ export class Tournament extends Rooms.RoomGame<TournamentPlayer> {
 		}
 		this.room.update();
 	}
+
+	// Modified To Implement Economy Syatem
+
 	onTournamentEnd() {
-		const update = {
-			results: (this.generator.getResults() as TournamentPlayer[][]).map(usersToNames),
-			format: this.name,
-			generator: this.generator.name,
-			bracketData: this.getBracketData(),
-		};
-		this.room.add(`|tournament|end|${JSON.stringify(update)}`);
-		const settings = this.room.settings.tournaments;
-		if (settings?.recentToursLength) {
-			if (!settings.recentTours) settings.recentTours = [];
-			const name = Dex.formats.get(this.name).exists ? Dex.formats.get(this.name).name :
-				`${this.name} (${Dex.formats.get(this.baseFormat).name})`;
-			settings.recentTours.unshift({ name, baseFormat: this.baseFormat, time: Date.now() });
-			// Use a while loop here in case the threshold gets lowered with /tour settings recenttours
-			// to trim down multiple at once
-			while (settings.recentTours.length > settings.recentToursLength) {
-				settings.recentTours.pop();
-			}
-			this.room.saveSettings();
-		}
-		this.remove();
+    const update = {
+        results: (this.generator.getResults() as TournamentPlayer[][]).map(usersToNames),
+        format: this.name,
+        generator: this.generator.name,
+        bracketData: this.getBracketData(),
+    };
+    this.room.add(`|tournament|end|${JSON.stringify(update)}`);
+
+    const settings = this.room.settings.tournaments;
+    if (settings?.recentToursLength) {
+        if (!settings.recentTours) settings.recentTours = [];
+        const name = Dex.formats.get(this.name).exists ? Dex.formats.get(this.name).name :
+            `${this.name} (${Dex.formats.get(this.baseFormat).name})`;
+        settings.recentTours.unshift({ name, baseFormat: this.baseFormat, time: Date.now() });
+
+        // Ensure recent tournaments list stays within the set limit
+        while (settings.recentTours.length > settings.recentToursLength) {
+            settings.recentTours.pop();
+        }
+        this.room.saveSettings();
+    }
+
+    this.remove(); // Cleanup after tournament ends
 	}
-}
 
 function getGenerator(generator: string | undefined) {
 	generator = toID(generator);
