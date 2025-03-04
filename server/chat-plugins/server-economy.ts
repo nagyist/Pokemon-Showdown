@@ -153,6 +153,8 @@ function getRichestUsers(start: number, end: number): string {
     return leaderboard;
 }
 
+export { getBalance, giveMoney, takeMoney };
+
 // Get help information
 function getEconomyHelp(): string {
     return `<div style="max-height: 300px; overflow-y: auto;"><b>💰 Economy Commands Help</b><br>
