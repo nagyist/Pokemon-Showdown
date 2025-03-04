@@ -12,13 +12,7 @@ const ECONOMY_CONFIG_FILE = '../../impulse/economy-config.json';
 interface EconomyData {
     [userID: string]: {
         balance: number;
-        bank: number;
     };
-}
-
-interface EconomyConfig {
-    interestRate: number;
-    interestPeriod: number;
 }
 
 // Load economy data
@@ -33,15 +27,6 @@ function loadEconomy(): EconomyData {
 // Save economy data
 function saveEconomy(data: EconomyData) {
     FS(ECONOMY_FILE).writeUpdate(() => JSON.stringify(data, null, 2));
-}
-
-// Load interest settings
-function loadEconomyConfig(): EconomyConfig {
-    try {
-        return JSON.parse(FS(ECONOMY_CONFIG_FILE).readIfExistsSync() || '{}');
-    } catch {
-        return { interestRate: 0.01, interestPeriod: 86400000 };
-    }
 }
 
 // Save interest settings
@@ -84,57 +69,6 @@ function transferMoney(fromID: string, toID: string, amount: number): string {
     return `You sent ${amount} PokéCoins to ${toID}.`;
 }
 
-// Banking Functions
-function depositBank(userID: string, amount: number): string {
-    const economy = loadEconomy();
-    if (!economy[userID]) economy[userID] = { balance: 0, bank: 0 };
-    if (amount <= 0 || economy[userID].balance < amount) return "Invalid deposit amount.";
-
-    economy[userID].balance -= amount;
-    economy[userID].bank += amount;
-    saveEconomy(economy);
-    return `You deposited ${amount} PokéCoins into the bank!`;
-}
-
-function withdrawBank(userID: string, amount: number): string {
-    const economy = loadEconomy();
-    if (!economy[userID]) economy[userID] = { balance: 0, bank: 0 };
-    if (amount <= 0 || economy[userID].bank < amount) return "Invalid withdrawal amount.";
-
-    const fee = Math.ceil(amount * 0.02);
-    const finalAmount = amount - fee;
-
-    economy[userID].bank -= amount;
-    economy[userID].balance += finalAmount;
-    saveEconomy(economy);
-    return `You withdrew ${amount} PokéCoins (Fee: ${fee}). You received ${finalAmount} PokéCoins!`;
-}
-
-function getBankBalance(userID: string): string {
-    const economy = loadEconomy();
-    return `You have ${economy[userID]?.bank || 0} PokéCoins in the bank.`;
-}
-
-// Interest System
-function applyInterest() {
-    const economy = loadEconomy();
-    const config = loadEconomyConfig();
-    const interestRate = config.interestRate;
-
-    for (const userID in economy) {
-        if (economy[userID].bank > 0) {
-            economy[userID].bank += Math.floor(economy[userID].bank * interestRate);
-        }
-    }
-    saveEconomy(economy);
-}
-
-// Start interest system
-function startInterestTimer() {
-    setInterval(applyInterest, loadEconomyConfig().interestPeriod);
-}
-startInterestTimer();
-
 // Get the richest users leaderboard
 function getRichestUsers(start: number, end: number): string {
     const economy = loadEconomy();
@@ -162,12 +96,8 @@ function getEconomyHelp(): string {
     <b>/givemoney [user], [amount]</b> - Give money to a user (Admin only).<br>
     <b>/takemoney [user], [amount]</b> - Take money from a user (Admin only).<br>
     <b>/transfermoney [user], [amount]</b> - Transfer money to another user.<br>
-    <b>/bank deposit [amount]</b> - Deposit money into the bank.<br>
-    <b>/bank withdraw [amount]</b> - Withdraw money from the bank.<br>
-    <b>/bank balance</b> - Check your bank balance.<br>
     <b>/richestusers [start]-[end]</b> - View the richest users leaderboard.<br>
-    <b>/setinterest [rate], [time]</b> - Set bank interest rate and time period (Admin only).<br>
-    <b>/economyhelp</b> - View this help menu.<br>
+	 <b>/economyhelp</b> - View this help menu.<br>
     </div>`;
 }
 
@@ -204,25 +134,6 @@ export const commands: ChatCommands = {
         if (!targetUser || isNaN(amount) || amount <= 0) return this.sendReply("Usage: /transfermoney [user], [amount]");
 
         return this.sendReply(transferMoney(user.id, targetUser, amount));
-    },
-
-    bank(target, room, user) {
-        const [cmd, amountStr] = target.split(',').map(x => x.trim());
-        const amount = Number(amountStr);
-        if (cmd === "balance") return this.sendReply(getBankBalance(user.id));
-        if (cmd === "deposit") return this.sendReply(depositBank(user.id, amount));
-        if (cmd === "withdraw") return this.sendReply(withdrawBank(user.id, amount));
-        return this.sendReply("/bank deposit [amount] | /bank withdraw [amount] | /bank balance");
-    },
-
-    setinterest(target, room, user) {
-        if (!user.hasRank('+')) return this.sendReply("You don't have permission.");
-        const [rateStr, periodStr] = target.split(',').map(x => x.trim());
-        const config = loadEconomyConfig();
-        config.interestRate = parseFloat(rateStr);
-        config.interestPeriod = Number(periodStr);
-        saveEconomyConfig(config);
-        return this.sendReply(`Interest rate set to ${config.interestRate * 100}%. Period: ${config.interestPeriod / 3600000} hours.`);
     },
 
 	richestusers(target, room, user) {
