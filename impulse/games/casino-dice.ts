@@ -26,7 +26,7 @@ interface DiceGame {
 const activeDiceGames: {[roomid: string]: DiceGame} = {};
 
 export const commands: Chat.ChatCommands = {
-	dice: {
+	casinodice: {
 		start(target, room, user) {
 			if (!room || room.roomid !== CASINO_ROOM) {
 				return this.errorReply(`This command can only be used in the official casino room: /join ${CASINO_ROOM}`);
@@ -62,7 +62,7 @@ export const commands: Chat.ChatCommands = {
 			room.add(`|uhtml|dice-${room.roomid}|<div style="background: #1e1f22; padding: 15px; border-radius: 12px; border: 3px solid #ffd700; text-align: center; color: #f8f8f8;">
 				<strong style="color:#ffd700;">🎲 ${user.name} has started a Dice Game!</strong><br>
 				Bet Amount: <span style="color:#ffd700;">${betAmount} ${currencyPlural}</span><br>
-				<button name="send" value="/dice join" style="background:#ffd700; color:#222; font-weight:bold; padding: 5px 10px; border-radius: 5px; border:none;">Join Game</button>
+				<button name="send" value="/casinodice join" style="background:#ffd700; color:#222; font-weight:bold; padding: 5px 10px; border-radius: 5px; border:none;">Join Game</button>
 				<br><i>Game auto-cancels in 60 seconds if no one joins.</i>
 			</div>`);
 			room.update();
@@ -130,8 +130,8 @@ export const commands: Chat.ChatCommands = {
 			this.sendReplyBox(
 				`<div style="background: #1e1f22; padding: 15px; border-radius: 12px; border: 3px solid #ffd700; text-align: left; color: #f8f8f8;">
 					<h3 style="color:#ffd700; text-align:center;">🎲 Dice Game Help 🎲</h3>
-					<b>/dice start [amount]</b> - Start a dice game and bet ${currencyPlural}.<br>
-					<b>/dice join</b> - Join an existing dice game.<br>
+					<b>/casinodice start [amount]</b> - Start a dice game and bet ${currencyPlural}.<br>
+					<b>/casinodice join</b> - Join an existing dice game.<br>
 					<i>Game auto-cancels if no one joins in 60 seconds.</i><br>
 				</div>`
 			);
