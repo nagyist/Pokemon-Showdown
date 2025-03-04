@@ -1175,30 +1175,58 @@ export class Tournament extends Rooms.RoomGame<TournamentPlayer> {
 		}
 		this.room.update();
 	}
+
+	// Modified To Implement Economy Syatem
+
 	onTournamentEnd() {
-		const update = {
-			results: (this.generator.getResults() as TournamentPlayer[][]).map(usersToNames),
-			format: this.name,
-			generator: this.generator.name,
-			bracketData: this.getBracketData(),
-		};
-		this.room.add(`|tournament|end|${JSON.stringify(update)}`);
-		const settings = this.room.settings.tournaments;
-		if (settings?.recentToursLength) {
-			if (!settings.recentTours) settings.recentTours = [];
-			const name = Dex.formats.get(this.name).exists ? Dex.formats.get(this.name).name :
-				`${this.name} (${Dex.formats.get(this.baseFormat).name})`;
-			settings.recentTours.unshift({ name, baseFormat: this.baseFormat, time: Date.now() });
-			// Use a while loop here in case the threshold gets lowered with /tour settings recenttours
-			// to trim down multiple at once
-			while (settings.recentTours.length > settings.recentToursLength) {
-				settings.recentTours.pop();
-			}
-			this.room.saveSettings();
-		}
-		this.remove();
+    const update = {
+        results: (this.generator.getResults() as TournamentPlayer[][]).map(usersToNames),
+        format: this.name,
+        generator: this.generator.name,
+        bracketData: this.getBracketData(),
+    };
+    this.room.add(`|tournament|end|${JSON.stringify(update)}`);
+
+    const settings = this.room.settings.tournaments;
+    if (settings?.recentToursLength) {
+        if (!settings.recentTours) settings.recentTours = [];
+        const name = Dex.formats.get(this.name).exists ? Dex.formats.get(this.name).name :
+            `${this.name} (${Dex.formats.get(this.baseFormat).name})`;
+        settings.recentTours.unshift({ name, baseFormat: this.baseFormat, time: Date.now() });
+
+        // Ensure recent tournaments list stays within the set limit
+        while (settings.recentTours.length > settings.recentToursLength) {
+            settings.recentTours.pop();
+        }
+        this.room.saveSettings();
+    }
+
+    // 🏆 Reward PokéCoins to Tournament Winner and Runner-Up
+    const { winnerCoins, runnerUpCoins, minParticipants } = getTournamentRewardConfig();
+
+    if (this.players.size < minParticipants) {
+        this.room.add(`|tournament|error|Not enough participants (${this.players.size}/${minParticipants}) to distribute PokéCoins.`);
+    } else {
+        const winners = this.generator.getResults() as TournamentPlayer[][]; // Get winners
+        if (winners.length) {
+            const winner = winners[0][0]; // First place
+            const runnerUp = winners[1]?.[0] || null; // Second place (if available)
+
+            let winnerPrize = this.players.size * winnerCoins;
+            let runnerUpPrize = this.players.size * runnerUpCoins;
+
+            giveMoney(winner.id, winnerPrize);
+            this.room.add(`🏆 **${winner.name}** won the tournament and received **${winnerPrize} PokéCoins**!`);
+
+            if (runnerUp) {
+                giveMoney(runnerUp.id, runnerUpPrize);
+                this.room.add(`🥈 **${runnerUp.name}** finished second and received **${runnerUpPrize} PokéCoins**!`);
+            }
+        }
+    }
+
+    this.remove(); // Cleanup after tournament ends
 	}
-}
 
 function getGenerator(generator: string | undefined) {
 	generator = toID(generator);
