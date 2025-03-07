@@ -1196,7 +1196,7 @@ export class Pokemon {
 			if (switchCause === 'shedtail' && i !== 'substitute') continue;
 			if (this.battle.dex.conditions.getByID(i as ID).noCopy) continue;
 			// shallow clones
-			this.volatiles[i] = this.battle.initEffectState({ ...pokemon.volatiles[i] });
+			this.volatiles[i] = this.battle.initEffectState({ ...pokemon.volatiles[i], target: this });
 			if (this.volatiles[i].linkedPokemon) {
 				delete pokemon.volatiles[i].linkedPokemon;
 				delete pokemon.volatiles[i].linkedStatus;
@@ -1786,7 +1786,6 @@ export class Pokemon {
 	}
 
 	takeItem(source?: Pokemon) {
-		if (!this.isActive) return false;
 		if (!this.item || this.itemState.knockedOff) return false;
 		if (!source) source = this;
 		if (this.battle.gen === 4) {
@@ -1965,8 +1964,7 @@ export class Pokemon {
 		if (!this.hp) return false;
 		status = this.battle.dex.conditions.get(status) as Effect;
 		if (!this.volatiles[status.id]) return false;
-		const linkedPokemon = this.volatiles[status.id].linkedPokemon;
-		const linkedStatus = this.volatiles[status.id].linkedStatus;
+		const { linkedPokemon, linkedStatus } = this.volatiles[status.id];
 		this.battle.singleEvent('End', status, this.volatiles[status.id], this);
 		delete this.volatiles[status.id];
 		if (linkedPokemon) {
